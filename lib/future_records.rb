@@ -21,6 +21,10 @@ module FutureRecords
     def records
       @query_thread.join
       @records
+    rescue ::ActiveRecord::ConnectionTimeoutError
+      logger.info 'FutureRecords: Failed to obtain a connection. Falling back to non-threaded query'
+      method(:exec_queries).super_method.call
+      super
     end
   end
 
@@ -31,7 +35,8 @@ module FutureRecords
   end
 
   class Result
-    def initialize
+    def initialize(&block)
+      @block = block
       @thread = Thread.new do
         ActiveRecord::Base.connection_pool.with_connection do
           @records = yield
@@ -42,6 +47,9 @@ module FutureRecords
     def records
       @thread.join
       @records
+    rescue ::ActiveRecord::ConnectionTimeoutError
+      ActiveRecord::Base.logger.info 'FutureRecords: Failed to obtain a connection. Falling back to non-threaded query'
+      @block.call
     end
   end
 end
