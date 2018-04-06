@@ -52,8 +52,17 @@ module FutureRecords
       @block.call
     end
   end
+
+  module ThreadedConnectionRecorder
+    def new_connection
+      conn = super
+      (Thread.current[:child_thread_connections] ||= []) << conn unless Thread.current == Thread.main
+      conn
+    end
+  end
 end
 
 ActiveSupport.on_load :active_record do
   ActiveRecord::Relation.include FutureRecords::FutureMethod
+  ActiveRecord::ConnectionAdapters::ConnectionPool.prepend FutureRecords::ThreadedConnectionRecorder
 end
