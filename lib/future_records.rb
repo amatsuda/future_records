@@ -38,8 +38,11 @@ module FutureRecords
     def initialize(&block)
       @block = block
       @thread = Thread.new do
-        ActiveRecord::Base.connection_pool.with_connection do
-          @records = yield
+        @records = yield
+        if Thread.current[:child_thread_connections]
+          Thread.current[:child_thread_connections].map {|conn| conn.pool}.uniq.each do |pool|
+            pool.release_connection
+          end
         end
       end
     end
