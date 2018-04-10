@@ -1,5 +1,30 @@
-require "future_records/version"
+# frozen_string_literal: true
 
 module FutureRecords
-  # Your code goes here...
+  module FutureMethod
+    def future
+      extend FutureFeature
+      exec_queries
+      self
+    end
+  end
+
+  module FutureFeature
+    private def exec_queries(&block)
+      @query_thread = Thread.new do
+        connection_pool.with_connection do
+          super
+        end
+      end
+    end
+
+    def records
+      @query_thread.join
+      @records
+    end
+  end
+end
+
+ActiveSupport.on_load :active_record do
+  ActiveRecord::Relation.include FutureRecords::FutureMethod
 end
