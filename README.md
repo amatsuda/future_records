@@ -23,6 +23,13 @@ Or install it yourself as:
 ## Usage
 
 TODO: Write usage instructions here
+```ruby
+future = Future.execute { 
+    # Your Background tasks
+}
+# Some other tasks in the main thread
+value = future.value
+```
 
 ## Development
 
